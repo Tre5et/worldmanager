@@ -1,6 +1,6 @@
 package net.treset.worldmanager.manager;
 
-public class ChangeCallback {
+public class CommandCallback {
     public enum Type {
         SUCCESS,
         FAILURE
@@ -9,7 +9,7 @@ public class ChangeCallback {
     private final Type type;
     private final String message;
 
-    public ChangeCallback(Type type, String message) {
+    public CommandCallback(Type type, String message) {
         this.type = type;
         this.message = message;
     }

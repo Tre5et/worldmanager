@@ -10,7 +10,7 @@ import net.minecraft.server.network.ServerPlayerEntity;
 import net.minecraft.text.Text;
 import net.minecraft.util.math.Vec2f;
 import net.treset.worldmanager.WorldManagerMod;
-import net.treset.worldmanager.manager.ChangeCallback;
+import net.treset.worldmanager.manager.CommandCallback;
 
 public class CommandHandler {
     public void registerCommand(CommandDispatcher<ServerCommandSource> dispatcher, CommandManager.RegistrationEnvironment environment) {
@@ -36,6 +36,11 @@ public class CommandHandler {
                         )
                 )
             )
+            .requires(source -> source.hasPermissionLevel(2)).then(CommandManager.literal("export")
+                .then(CommandManager.literal("mca-selector")
+                    .executes(this::onExportMcaSelector)
+                )
+            )
         );
     }
 
@@ -43,38 +48,45 @@ public class CommandHandler {
         int radius = IntegerArgumentType.getInteger(ctx, "radius");
         ServerPlayerEntity player = ctx.getSource().getPlayer();
         if(player == null) return 0;
-        ChangeCallback changeCallback = WorldManagerMod.getChunkManager().add(player.getPos(), radius);
-        return sendFeedback(ctx, changeCallback);
+        CommandCallback commandCallback = WorldManagerMod.getChunkManager().add(player.getPos(), radius);
+        return sendFeedback(ctx, commandCallback);
     }
 
     public int onKeepCoordinates(CommandContext<ServerCommandSource> ctx) {
         Vec2f pos1 = Vec2ArgumentType.getVec2(ctx, "pos1");
         Vec2f pos2 = Vec2ArgumentType.getVec2(ctx, "pos2");
-        ChangeCallback changeCallback = WorldManagerMod.getChunkManager().add(pos1, pos2);
-        return sendFeedback(ctx, changeCallback);
+        CommandCallback commandCallback = WorldManagerMod.getChunkManager().add(pos1, pos2);
+        return sendFeedback(ctx, commandCallback);
     }
 
     public int onRemoveRadius(CommandContext<ServerCommandSource> ctx) {
         int radius = IntegerArgumentType.getInteger(ctx, "radius");
         ServerPlayerEntity player = ctx.getSource().getPlayer();
         if(player == null) return 0;
-        ChangeCallback changeCallback = WorldManagerMod.getChunkManager().remove(player.getPos(), radius);
-        return sendFeedback(ctx, changeCallback);
+        CommandCallback commandCallback = WorldManagerMod.getChunkManager().remove(player.getPos(), radius);
+        return sendFeedback(ctx, commandCallback);
     }
 
     public int onRemoveCoordinates(CommandContext<ServerCommandSource> ctx) {
         Vec2f pos1 = Vec2ArgumentType.getVec2(ctx, "pos1");
         Vec2f pos2 = Vec2ArgumentType.getVec2(ctx, "pos2");
-        ChangeCallback changeCallback = WorldManagerMod.getChunkManager().remove(pos1, pos2);
-        return sendFeedback(ctx, changeCallback);
+        CommandCallback commandCallback = WorldManagerMod.getChunkManager().remove(pos1, pos2);
+        return sendFeedback(ctx, commandCallback);
     }
 
-    private int sendFeedback(CommandContext<ServerCommandSource> ctx, ChangeCallback changeCallback) {
-        if(changeCallback.getType() == ChangeCallback.Type.FAILURE) {
-            ctx.getSource().sendError(Text.literal(changeCallback.getMessage()));
+    private int sendFeedback(CommandContext<ServerCommandSource> ctx, CommandCallback commandCallback) {
+        if(commandCallback.getType() == CommandCallback.Type.FAILURE) {
+            ctx.getSource().sendError(Text.literal(commandCallback.getMessage()));
             return 0;
         }
-        ctx.getSource().sendFeedback(() -> Text.literal(changeCallback.getMessage()), false);
+        ctx.getSource().sendFeedback(() -> Text.literal(commandCallback.getMessage()), false);
         return 1;
+    }
+
+    private int onExportMcaSelector(CommandContext<ServerCommandSource> ctx) {
+        ServerPlayerEntity player = ctx.getSource().getPlayer();
+        if(player == null) return 0;
+        CommandCallback commandCallback = WorldManagerMod.getConfig().exportMcaSelector();
+        return sendFeedback(ctx, commandCallback);
     }
 }

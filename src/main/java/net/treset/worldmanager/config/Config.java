@@ -1,6 +1,7 @@
 package net.treset.worldmanager.config;
 
 import com.google.gson.Gson;
+import net.treset.worldmanager.manager.CommandCallback;
 
 import java.io.*;
 import java.util.ArrayList;
@@ -28,6 +29,36 @@ public class Config {
         Region region = new Region(x, z, getNewChunks());
         regions.add(region);
         return region;
+    }
+
+    public CommandCallback exportMcaSelector() {
+        StringBuilder out = new StringBuilder();
+        for(Region region : regions) {
+            for(ArrayList<Chunk> chunks : region.getChunks()) {
+                for(Chunk chunk : chunks) {
+                    if(chunk != null) {
+                        out.append(region.getX()).append(";").append(region.getZ()).append(";").append(32 * region.getX() + chunk.getChunkX()).append(";").append(32 * region.getZ() + chunk.getChunkZ()).append("\n");
+                    }
+                }
+            }
+        }
+        File outFile = new File("worldmanager-mcaselector.csv");
+        if(!outFile.exists()) {
+            try {
+                outFile.createNewFile();
+            } catch (IOException e) {
+                return new CommandCallback(CommandCallback.Type.FAILURE, "Failed to create file.");
+            }
+        }
+
+        try {
+            FileWriter writer = new FileWriter(outFile);
+            writer.write(out.toString());
+            writer.close();
+        } catch (IOException e) {
+            return new CommandCallback(CommandCallback.Type.FAILURE, "Failed to write to file.");
+        }
+        return new CommandCallback(CommandCallback.Type.SUCCESS, "Successfully exported to worldmanager-mcaselector.csv");
     }
 
     public void save() throws IOException {

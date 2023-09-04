@@ -10,7 +10,7 @@ import net.treset.worldmanager.config.Region;
 import java.io.IOException;
 
 public class ChunkManager {
-    public ChangeCallback add(Vec3d origin, int radius) {
+    public CommandCallback add(Vec3d origin, int radius) {
         Config config = WorldManagerMod.getConfig();
         int chunkX = (int)Math.floor(origin.getX()) / 16;
         int chunkZ = (int)Math.floor(origin.getZ()) / 16;
@@ -25,7 +25,7 @@ public class ChunkManager {
                 int chunkZInRegion = (((chunkZ + j) % 32) + 32) % 32;
                 if(region.getChunks().get(chunkXInRegion).get(chunkZInRegion) == null) {
                     count++;
-                    region.getChunks().get(chunkXInRegion).set(chunkZInRegion, new Chunk(regionX, regionZ, chunkXInRegion, chunkZInRegion));
+                    region.getChunks().get(chunkXInRegion).set(chunkZInRegion, new Chunk(chunkXInRegion, chunkZInRegion));
                 }
             }
         }
@@ -34,13 +34,13 @@ public class ChunkManager {
                 WorldManagerMod.getConfig().save();
             } catch (IOException e) {
                 WorldManagerMod.LOGGER.error("Failed to save config file.", e);
-                return new ChangeCallback(ChangeCallback.Type.FAILURE, "Failed to save config file.");
+                return new CommandCallback(CommandCallback.Type.FAILURE, "Failed to save config file.");
             }
         }
-        return new ChangeCallback(ChangeCallback.Type.SUCCESS, "Successfully added " + count + " chunks.");
+        return new CommandCallback(CommandCallback.Type.SUCCESS, "Successfully added " + count + " chunks.");
     }
 
-    public ChangeCallback add(Vec2f pos1, Vec2f pos2) {
+    public CommandCallback add(Vec2f pos1, Vec2f pos2) {
         int chunkX1 = (int)Math.floor(pos1.x) / 16;
         int chunkZ1 = (int)Math.floor(pos1.y) / 16;
         int chunkX2 = (int)Math.floor(pos2.x) / 16;
@@ -65,7 +65,7 @@ public class ChunkManager {
                 int chunkXInRegion = ((i % 32) + 32) % 32;
                 int chunkZInRegion = ((j % 32) + 32) % 32;
                 if(region.getChunks().get(chunkXInRegion).get(chunkZInRegion) == null) {
-                    region.getChunks().get(chunkXInRegion).set(chunkZInRegion, new Chunk(regionX, regionZ, chunkXInRegion, chunkZInRegion));
+                    region.getChunks().get(chunkXInRegion).set(chunkZInRegion, new Chunk(chunkXInRegion, chunkZInRegion));
                     count++;
                 }
             }
@@ -75,13 +75,13 @@ public class ChunkManager {
                 WorldManagerMod.getConfig().save();
             } catch (IOException e) {
                 WorldManagerMod.LOGGER.error("Failed to save config file.", e);
-                return new ChangeCallback(ChangeCallback.Type.FAILURE, "Failed to save config file.");
+                return new CommandCallback(CommandCallback.Type.FAILURE, "Failed to save config file.");
             }
         }
-        return new ChangeCallback(ChangeCallback.Type.SUCCESS, "Successfully added " + count + " chunks.");
+        return new CommandCallback(CommandCallback.Type.SUCCESS, "Successfully added " + count + " chunks.");
     }
 
-    public ChangeCallback remove(Vec3d origin, int radius) {
+    public CommandCallback remove(Vec3d origin, int radius) {
         Config config = WorldManagerMod.getConfig();
         int chunkX = (int)Math.floor(origin.getX()) / 16;
         int chunkZ = (int)Math.floor(origin.getZ()) / 16;
@@ -105,13 +105,13 @@ public class ChunkManager {
                 WorldManagerMod.getConfig().save();
             } catch (IOException e) {
                 WorldManagerMod.LOGGER.error("Failed to save config file.", e);
-                return new ChangeCallback(ChangeCallback.Type.FAILURE, "Failed to save config file.");
+                return new CommandCallback(CommandCallback.Type.FAILURE, "Failed to save config file.");
             }
         }
-        return new ChangeCallback(ChangeCallback.Type.SUCCESS, "Successfully removed " + count + " chunks.");
+        return new CommandCallback(CommandCallback.Type.SUCCESS, "Successfully removed " + count + " chunks.");
     }
 
-    public ChangeCallback remove(Vec2f pos1, Vec2f pos2) {
+    public CommandCallback remove(Vec2f pos1, Vec2f pos2) {
         int chunkX1 = (int)Math.floor(pos1.x) / 16;
         int chunkZ1 = (int)Math.floor(pos1.y) / 16;
         int chunkX2 = (int)Math.floor(pos2.x) / 16;
@@ -146,9 +146,9 @@ public class ChunkManager {
                 WorldManagerMod.getConfig().save();
             } catch (IOException e) {
                 WorldManagerMod.LOGGER.error("Failed to save config file.", e);
-                return new ChangeCallback(ChangeCallback.Type.FAILURE, "Failed to save config file.");
+                return new CommandCallback(CommandCallback.Type.FAILURE, "Failed to save config file.");
             }
         }
-        return new ChangeCallback(ChangeCallback.Type.SUCCESS, "Successfully removed " + count + " chunks.");
+        return new CommandCallback(CommandCallback.Type.SUCCESS, "Successfully removed " + count + " chunks.");
     }
 }
