@@ -45,14 +45,18 @@ public class CommandHandler {
     }
 
     public int onKeepRadius(CommandContext<ServerCommandSource> ctx) {
-        int radius = IntegerArgumentType.getInteger(ctx, "radius");
         ServerPlayerEntity player = ctx.getSource().getPlayer();
         if(player == null) return 0;
+        CommandCallback dimensionCallback = checkDimension(ctx);
+        if(dimensionCallback != null) return sendFeedback(ctx, dimensionCallback);
+        int radius = IntegerArgumentType.getInteger(ctx, "radius");
         CommandCallback commandCallback = WorldManagerMod.getChunkManager().add(player.getPos(), radius);
         return sendFeedback(ctx, commandCallback);
     }
 
     public int onKeepCoordinates(CommandContext<ServerCommandSource> ctx) {
+        CommandCallback dimensionCallback = checkDimension(ctx);
+        if(dimensionCallback != null) return sendFeedback(ctx, dimensionCallback);
         Vec2f pos1 = Vec2ArgumentType.getVec2(ctx, "pos1");
         Vec2f pos2 = Vec2ArgumentType.getVec2(ctx, "pos2");
         CommandCallback commandCallback = WorldManagerMod.getChunkManager().add(pos1, pos2);
@@ -60,6 +64,8 @@ public class CommandHandler {
     }
 
     public int onRemoveRadius(CommandContext<ServerCommandSource> ctx) {
+        CommandCallback dimensionCallback = checkDimension(ctx);
+        if(dimensionCallback != null) return sendFeedback(ctx, dimensionCallback);
         int radius = IntegerArgumentType.getInteger(ctx, "radius");
         ServerPlayerEntity player = ctx.getSource().getPlayer();
         if(player == null) return 0;
@@ -68,10 +74,23 @@ public class CommandHandler {
     }
 
     public int onRemoveCoordinates(CommandContext<ServerCommandSource> ctx) {
+        CommandCallback dimensionCallback = checkDimension(ctx);
+        if(dimensionCallback != null) return sendFeedback(ctx, dimensionCallback);
         Vec2f pos1 = Vec2ArgumentType.getVec2(ctx, "pos1");
         Vec2f pos2 = Vec2ArgumentType.getVec2(ctx, "pos2");
         CommandCallback commandCallback = WorldManagerMod.getChunkManager().remove(pos1, pos2);
         return sendFeedback(ctx, commandCallback);
+    }
+
+    private CommandCallback checkDimension(CommandContext<ServerCommandSource> ctx) {
+        //TODO: save separate lists for each dimension
+        ServerPlayerEntity player = ctx.getSource().getPlayer();
+        if(player == null) return new CommandCallback(CommandCallback.Type.FAILURE, "You must be a player to use this command.");
+        if(!player.getWorld().getDimension().bedWorks()) {
+            //nether or end
+            return new CommandCallback(CommandCallback.Type.FAILURE, "You can only use this command in the overworld.");
+        }
+        return null;
     }
 
     private int sendFeedback(CommandContext<ServerCommandSource> ctx, CommandCallback commandCallback) {
