@@ -3,13 +3,16 @@ package net.treset.worldmanager.commands;
 import com.mojang.brigadier.CommandDispatcher;
 import com.mojang.brigadier.arguments.IntegerArgumentType;
 import com.mojang.brigadier.context.CommandContext;
+import net.minecraft.command.argument.IdentifierArgumentType;
 import net.minecraft.command.argument.Vec2ArgumentType;
 import net.minecraft.server.command.CommandManager;
 import net.minecraft.server.command.ServerCommandSource;
 import net.minecraft.server.network.ServerPlayerEntity;
 import net.minecraft.text.Text;
+import net.minecraft.util.Identifier;
 import net.minecraft.util.math.Vec2f;
 import net.treset.worldmanager.WorldManagerMod;
+import net.treset.worldmanager.config.Config;
 import net.treset.worldmanager.manager.CommandCallback;
 
 public class CommandHandler {
@@ -26,7 +29,7 @@ public class CommandHandler {
                     )
                 )
             )
-            .requires(source -> source.hasPermissionLevel(2)).then(CommandManager.literal("remove")
+            .then(CommandManager.literal("remove").requires(source -> source.hasPermissionLevel(2))
                 .then(CommandManager.argument("radius", IntegerArgumentType.integer(1))
                         .executes(this::onRemoveRadius)
                 )
@@ -36,9 +39,12 @@ public class CommandHandler {
                         )
                 )
             )
-            .requires(source -> source.hasPermissionLevel(2)).then(CommandManager.literal("export")
+            .then(CommandManager.literal("export").requires(source -> source.hasPermissionLevel(2))
                 .then(CommandManager.literal("mca-selector")
-                    .executes(this::onExportMcaSelector)
+                    .executes(this::onExportMcaSelectorWithoutDimension)
+                    .then(CommandManager.argument("dimensionId", IdentifierArgumentType.identifier())
+                            .executes(this::onExportMcaSelectorWithDimension)
+                    )
                 )
             )
         );
@@ -47,50 +53,65 @@ public class CommandHandler {
     public int onKeepRadius(CommandContext<ServerCommandSource> ctx) {
         ServerPlayerEntity player = ctx.getSource().getPlayer();
         if(player == null) return 0;
-        CommandCallback dimensionCallback = checkDimension(ctx);
-        if(dimensionCallback != null) return sendFeedback(ctx, dimensionCallback);
+        String dimensionId = getDimensionId(ctx);
+        if(dimensionId == null) return sendFeedback(ctx, new CommandCallback(CommandCallback.Type.FAILURE, "Failed to get dimension id."));
         int radius = IntegerArgumentType.getInteger(ctx, "radius");
-        CommandCallback commandCallback = WorldManagerMod.getChunkManager().add(player.getPos(), radius);
+        CommandCallback commandCallback = WorldManagerMod.getChunkManager().add(player.getPos(), radius, dimensionId);
         return sendFeedback(ctx, commandCallback);
     }
 
     public int onKeepCoordinates(CommandContext<ServerCommandSource> ctx) {
-        CommandCallback dimensionCallback = checkDimension(ctx);
-        if(dimensionCallback != null) return sendFeedback(ctx, dimensionCallback);
+        String dimensionId = getDimensionId(ctx);
+        if(dimensionId == null) return sendFeedback(ctx, new CommandCallback(CommandCallback.Type.FAILURE, "Failed to get dimension id."));
         Vec2f pos1 = Vec2ArgumentType.getVec2(ctx, "pos1");
         Vec2f pos2 = Vec2ArgumentType.getVec2(ctx, "pos2");
-        CommandCallback commandCallback = WorldManagerMod.getChunkManager().add(pos1, pos2);
+        CommandCallback commandCallback = WorldManagerMod.getChunkManager().add(pos1, pos2, dimensionId);
         return sendFeedback(ctx, commandCallback);
     }
 
     public int onRemoveRadius(CommandContext<ServerCommandSource> ctx) {
-        CommandCallback dimensionCallback = checkDimension(ctx);
-        if(dimensionCallback != null) return sendFeedback(ctx, dimensionCallback);
+        String dimensionId = getDimensionId(ctx);
+        if(dimensionId == null) return sendFeedback(ctx, new CommandCallback(CommandCallback.Type.FAILURE, "Failed to get dimension id."));
         int radius = IntegerArgumentType.getInteger(ctx, "radius");
         ServerPlayerEntity player = ctx.getSource().getPlayer();
         if(player == null) return 0;
-        CommandCallback commandCallback = WorldManagerMod.getChunkManager().remove(player.getPos(), radius);
+        CommandCallback commandCallback = WorldManagerMod.getChunkManager().remove(player.getPos(), radius, dimensionId);
         return sendFeedback(ctx, commandCallback);
     }
 
     public int onRemoveCoordinates(CommandContext<ServerCommandSource> ctx) {
-        CommandCallback dimensionCallback = checkDimension(ctx);
-        if(dimensionCallback != null) return sendFeedback(ctx, dimensionCallback);
+        String dimensionId = getDimensionId(ctx);
+        if(dimensionId == null) return sendFeedback(ctx, new CommandCallback(CommandCallback.Type.FAILURE, "Failed to get dimension id."));
         Vec2f pos1 = Vec2ArgumentType.getVec2(ctx, "pos1");
         Vec2f pos2 = Vec2ArgumentType.getVec2(ctx, "pos2");
-        CommandCallback commandCallback = WorldManagerMod.getChunkManager().remove(pos1, pos2);
+        CommandCallback commandCallback = WorldManagerMod.getChunkManager().remove(pos1, pos2, dimensionId);
         return sendFeedback(ctx, commandCallback);
     }
 
-    private CommandCallback checkDimension(CommandContext<ServerCommandSource> ctx) {
-        //TODO: save separate lists for each dimension
-        ServerPlayerEntity player = ctx.getSource().getPlayer();
-        if(player == null) return new CommandCallback(CommandCallback.Type.FAILURE, "You must be a player to use this command.");
-        if(!player.getWorld().getDimension().bedWorks()) {
-            //nether or end
-            return new CommandCallback(CommandCallback.Type.FAILURE, "You can only use this command in the overworld.");
+    private int onExportMcaSelectorWithDimension(CommandContext<ServerCommandSource> ctx) {
+        Identifier dimensionIdentifier = IdentifierArgumentType.getIdentifier(ctx, "dimensionId");
+        return exportMcaSelector(dimensionIdentifier.getNamespace() + "." + dimensionIdentifier.getPath(), ctx);
+    }
+
+    private int onExportMcaSelectorWithoutDimension(CommandContext<ServerCommandSource> ctx) {
+        return exportMcaSelector(getDimensionId(ctx), ctx);
+    }
+
+    private int exportMcaSelector(String dimensionId, CommandContext<ServerCommandSource> ctx) {
+        if(dimensionId == null) return sendFeedback(ctx, new CommandCallback(CommandCallback.Type.FAILURE, "Failed to get dimension id."));
+        Config config = WorldManagerMod.getConfig(dimensionId);
+        if(config == null) return sendFeedback(ctx, new CommandCallback(CommandCallback.Type.FAILURE, "Failed to get config file."));
+        CommandCallback commandCallback = config.exportMcaSelector();
+        return sendFeedback(ctx, commandCallback);
+    }
+
+    private String getDimensionId(CommandContext<ServerCommandSource> ctx) {
+        try {
+            Identifier dimension = ctx.getSource().getWorld().getDimensionKey().getValue();
+            return dimension.getNamespace() + "." + dimension.getPath();
+        } catch (NullPointerException e) {
+            return null;
         }
-        return null;
     }
 
     private int sendFeedback(CommandContext<ServerCommandSource> ctx, CommandCallback commandCallback) {
@@ -102,10 +123,4 @@ public class CommandHandler {
         return 1;
     }
 
-    private int onExportMcaSelector(CommandContext<ServerCommandSource> ctx) {
-        ServerPlayerEntity player = ctx.getSource().getPlayer();
-        if(player == null) return 0;
-        CommandCallback commandCallback = WorldManagerMod.getConfig().exportMcaSelector();
-        return sendFeedback(ctx, commandCallback);
-    }
 }

@@ -10,8 +10,10 @@ import net.treset.worldmanager.config.Region;
 import java.io.IOException;
 
 public class ChunkManager {
-    public CommandCallback add(Vec3d origin, int radius) {
-        Config config = WorldManagerMod.getConfig();
+    public CommandCallback add(Vec3d origin, int radius, String dimensionId) {
+        Config config = WorldManagerMod.getConfig(dimensionId);
+        if (config == null) return new CommandCallback(CommandCallback.Type.FAILURE, "Failed to get config file.");
+
         int chunkX = (int)Math.floor(origin.getX()) / 16;
         int chunkZ = (int)Math.floor(origin.getZ()) / 16;
 
@@ -31,7 +33,7 @@ public class ChunkManager {
         }
         if(count > 0) {
             try {
-                WorldManagerMod.getConfig().save();
+                config.save();
             } catch (IOException e) {
                 WorldManagerMod.LOGGER.error("Failed to save config file.", e);
                 return new CommandCallback(CommandCallback.Type.FAILURE, "Failed to save config file.");
@@ -40,7 +42,10 @@ public class ChunkManager {
         return new CommandCallback(CommandCallback.Type.SUCCESS, "Successfully added " + count + " chunks.");
     }
 
-    public CommandCallback add(Vec2f pos1, Vec2f pos2) {
+    public CommandCallback add(Vec2f pos1, Vec2f pos2, String dimensionId) {
+        Config config = WorldManagerMod.getConfig(dimensionId);
+        if (config == null) return new CommandCallback(CommandCallback.Type.FAILURE, "Failed to get config file.");
+
         int chunkX1 = (int)Math.floor(pos1.x) / 16;
         int chunkZ1 = (int)Math.floor(pos1.y) / 16;
         int chunkX2 = (int)Math.floor(pos2.x) / 16;
@@ -61,7 +66,7 @@ public class ChunkManager {
             for(int j = chunkZ1; j <= chunkZ2; j++) {
                 int regionX = i >> 5;
                 int regionZ = j >> 5;
-                Region region = WorldManagerMod.getConfig().getRegion(regionX, regionZ);
+                Region region = config.getRegion(regionX, regionZ);
                 int chunkXInRegion = ((i % 32) + 32) % 32;
                 int chunkZInRegion = ((j % 32) + 32) % 32;
                 if(region.getChunks().get(chunkXInRegion).get(chunkZInRegion) == null) {
@@ -72,7 +77,7 @@ public class ChunkManager {
         }
         if(count > 0) {
             try {
-                WorldManagerMod.getConfig().save();
+                config.save();
             } catch (IOException e) {
                 WorldManagerMod.LOGGER.error("Failed to save config file.", e);
                 return new CommandCallback(CommandCallback.Type.FAILURE, "Failed to save config file.");
@@ -81,8 +86,10 @@ public class ChunkManager {
         return new CommandCallback(CommandCallback.Type.SUCCESS, "Successfully added " + count + " chunks.");
     }
 
-    public CommandCallback remove(Vec3d origin, int radius) {
-        Config config = WorldManagerMod.getConfig();
+    public CommandCallback remove(Vec3d origin, int radius, String dimensionId) {
+        Config config = WorldManagerMod.getConfig(dimensionId);
+        if (config == null) return new CommandCallback(CommandCallback.Type.FAILURE, "Failed to get config file.");
+
         int chunkX = (int)Math.floor(origin.getX()) / 16;
         int chunkZ = (int)Math.floor(origin.getZ()) / 16;
 
@@ -102,7 +109,7 @@ public class ChunkManager {
         }
         if(count > 0) {
             try {
-                WorldManagerMod.getConfig().save();
+                config.save();
             } catch (IOException e) {
                 WorldManagerMod.LOGGER.error("Failed to save config file.", e);
                 return new CommandCallback(CommandCallback.Type.FAILURE, "Failed to save config file.");
@@ -111,7 +118,10 @@ public class ChunkManager {
         return new CommandCallback(CommandCallback.Type.SUCCESS, "Successfully removed " + count + " chunks.");
     }
 
-    public CommandCallback remove(Vec2f pos1, Vec2f pos2) {
+    public CommandCallback remove(Vec2f pos1, Vec2f pos2, String dimensionId) {
+        Config config = WorldManagerMod.getConfig(dimensionId);
+        if(config == null) return new CommandCallback(CommandCallback.Type.FAILURE, "Failed to get config file.");
+
         int chunkX1 = (int)Math.floor(pos1.x) / 16;
         int chunkZ1 = (int)Math.floor(pos1.y) / 16;
         int chunkX2 = (int)Math.floor(pos2.x) / 16;
@@ -132,7 +142,7 @@ public class ChunkManager {
             for(int j = chunkZ1; j <= chunkZ2; j++) {
                 int regionX = i >> 5;
                 int regionZ = j >> 5;
-                Region region = WorldManagerMod.getConfig().getRegion(regionX, regionZ);
+                Region region = config.getRegion(regionX, regionZ);
                 int chunkXInRegion = ((i % 32) + 32) % 32;
                 int chunkZInRegion = ((j % 32) + 32) % 32;
                 if(region.getChunks().get(chunkXInRegion).get(chunkZInRegion) != null) {
@@ -143,7 +153,7 @@ public class ChunkManager {
         }
         if(count > 0) {
             try {
-                WorldManagerMod.getConfig().save();
+                config.save();
             } catch (IOException e) {
                 WorldManagerMod.LOGGER.error("Failed to save config file.", e);
                 return new CommandCallback(CommandCallback.Type.FAILURE, "Failed to save config file.");

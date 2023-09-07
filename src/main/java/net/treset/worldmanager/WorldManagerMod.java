@@ -8,8 +8,8 @@ import net.treset.worldmanager.manager.ChunkManager;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import java.io.File;
-import java.io.IOException;
+import java.io.*;
+import java.util.ArrayList;
 
 public class WorldManagerMod implements ModInitializer {
 	// This logger is used to write text to the console and the log file.
@@ -18,30 +18,64 @@ public class WorldManagerMod implements ModInitializer {
     public static final Logger LOGGER = LoggerFactory.getLogger("worldmanager");
 
 	private static final ChunkManager chunkManager = new ChunkManager();
-	private static Config config;
+
+	private static String levelName = "world";
+	private static final ArrayList<Config> configs = new ArrayList<>();
 
 	@Override
 	public void onInitialize() {
-		// This code runs as soon as Minecraft is in a mod-load-ready state.
-		// However, some things (like resources) may still be uninitialized.
-		// Proceed with mild caution.
+		CommandRegistrationCallback.EVENT.register((dispatcher, registryAccess, environment) -> new CommandHandler().registerCommand(dispatcher, environment));
+		loadWorldName();
+	}
+
+	private static void loadWorldName() {
+		File serverPropertiesFile = new File("server.properties");
+		BufferedReader serverPropertiesReader;
 		try {
-			config = Config.from(new File("config/worldmanager.json"));
-		} catch (IOException e) {
-			LOGGER.error("Failed to load config file", e);
+			serverPropertiesReader = new BufferedReader(new InputStreamReader(new FileInputStream(serverPropertiesFile)));
+		} catch (FileNotFoundException e) {
+			LOGGER.error("Failed to find server.properties file.");
 			return;
 		}
 
-		CommandRegistrationCallback.EVENT.register((dispatcher, registryAccess, environment) -> new CommandHandler().registerCommand(dispatcher, environment));
-
-		LOGGER.info("Hello Fabric world!");
+		String line;
+		while(true) {
+			try {
+				if ((line = serverPropertiesReader.readLine()) == null) break;
+				if(line.startsWith("level-name=")) {
+					levelName = line.substring(11);
+					break;
+				}
+			} catch (IOException e) {
+				LOGGER.error("Failed to read server.properties file.");
+				return;
+			}
+		}
 	}
 
 	public static ChunkManager getChunkManager() {
 		return chunkManager;
 	}
 
-	public static Config getConfig() {
+	public static String getLevelName() {
+		return levelName;
+	}
+
+	public static Config getConfig(String dimensionId) {
+		for(Config config : configs) {
+			if(config.getDimensionId().equals(dimensionId)) {
+				return config;
+			}
+		}
+
+		Config config;
+		try {
+			config = Config.from(dimensionId);
+		} catch (IOException e) {
+			LOGGER.error("Failed to load config file.", e);
+			return null;
+		}
+		configs.add(config);
 		return config;
 	}
 }

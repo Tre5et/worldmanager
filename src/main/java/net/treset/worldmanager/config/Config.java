@@ -1,6 +1,7 @@
 package net.treset.worldmanager.config;
 
 import com.google.gson.Gson;
+import net.treset.worldmanager.WorldManagerMod;
 import net.treset.worldmanager.manager.CommandCallback;
 
 import java.io.*;
@@ -8,11 +9,12 @@ import java.util.ArrayList;
 
 public class Config {
     private transient File file;
+    private transient String dimensionId;
     private final ArrayList<Region> regions;
 
-    public Config(File file) {
-        this.file = file;
-        regions = new ArrayList<>();
+    public Config(String dimensionId) {
+        setDimensionId(dimensionId);
+        this.regions = new ArrayList<>();
     }
 
     public ArrayList<Region> getRegions() {
@@ -42,9 +44,10 @@ public class Config {
                 }
             }
         }
-        File outFile = new File("worldmanager-mcaselector.csv");
+        File outFile = new File("worldmanager/" + WorldManagerMod.getLevelName() + "." + dimensionId + "-mcaselector.csv");
         if(!outFile.exists()) {
             try {
+                outFile.getParentFile().mkdirs();
                 outFile.createNewFile();
             } catch (IOException e) {
                 return new CommandCallback(CommandCallback.Type.FAILURE, "Failed to create file.");
@@ -58,7 +61,7 @@ public class Config {
         } catch (IOException e) {
             return new CommandCallback(CommandCallback.Type.FAILURE, "Failed to write to file.");
         }
-        return new CommandCallback(CommandCallback.Type.SUCCESS, "Successfully exported to worldmanager-mcaselector.csv");
+        return new CommandCallback(CommandCallback.Type.SUCCESS, "Successfully exported to worldmanager/" + WorldManagerMod.getLevelName() + "." + dimensionId + "-mcaselector.csv");
     }
 
     public void save() throws IOException {
@@ -73,20 +76,27 @@ public class Config {
         return file;
     }
 
-    public void setFile(File file) {
-        this.file = file;
+    public String getDimensionId() {
+        return dimensionId;
     }
 
-    public static Config from(File file) throws IOException {
+    public void setDimensionId(String dimensionId) {
+        this.dimensionId = dimensionId;
+        this.file = new File(WorldManagerMod.getLevelName() + "/worldmanager/data/" + dimensionId + ".json");
+    }
+
+    public static Config from(String dimensionId) throws IOException {
+        File file = new File(WorldManagerMod.getLevelName() + "/worldmanager/data/" + dimensionId + ".json");
+
         if(file.exists()) {
             Gson gson = new Gson();
             Config config = gson.fromJson(new InputStreamReader(new FileInputStream(file)), Config.class);
-            config.setFile(file);
+            config.setDimensionId(dimensionId);
             return config;
         }
         file.getParentFile().mkdirs();
         file.createNewFile();
-        return new Config(file);
+        return new Config(dimensionId);
     }
 
     public static ArrayList<ArrayList<Chunk>> getNewChunks() {
